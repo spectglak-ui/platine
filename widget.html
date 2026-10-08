@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>PLATINE</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;font-family:'Segoe UI Variable','Segoe UI',system-ui,sans-serif;color:#f0f0f0;overflow:hidden;user-select:none;-webkit-user-select:none}
+
+.page{height:100vh;display:flex;align-items:center;justify-content:center;padding:12px}
+
+.widget{
+  width:100%;max-width:336px;padding:10px 12px;border-radius:10px;
+  background:rgba(24,24,24,.55);
+  backdrop-filter:blur(40px) saturate(1.4);
+  -webkit-backdrop-filter:blur(40px) saturate(1.4);
+  border:1px solid rgba(255,255,255,.08);
+  box-shadow:0 4px 20px rgba(0,0,0,.3);
+  animation:in .4s cubic-bezier(.2,.9,.3,1) both;
+  transition:opacity .3s,transform .3s;
+  position:relative;
+}
+.widget.unlocked{-webkit-app-region:drag;cursor:move}
+.widget.bye{opacity:0;transform:scale(.95)}
+@keyframes in{from{opacity:0;transform:translateY(8px)}}
+
+button,input{-webkit-app-region:no-drag}
+.row{display:flex;align-items:center;gap:10px}
+
+/* Étoile animée */
+.art{width:56px;height:56px;flex-shrink:0;cursor:pointer;position:relative;display:grid;place-items:center}
+.art::before{content:"";position:absolute;inset:-4px;border-radius:50%;
+  background:radial-gradient(circle,rgba(242,163,60,.30),transparent 68%);transition:opacity .6s;opacity:.4}
+.widget[data-playing="true"] .art::before{opacity:1;animation:halo 2.4s ease-in-out infinite}
+@keyframes halo{50%{transform:scale(1.22);opacity:.85}}
+.star-wrap{width:36px;height:36px;display:grid;place-items:center}
+.widget[data-playing="true"] .star-wrap{animation:spin 9s linear infinite}
+.widget[data-playing="false"] .star-wrap{animation:spin 45s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.star{width:100%;height:100%;filter:drop-shadow(0 0 5px rgba(242,163,60,.55));transition:opacity .5s}
+.widget[data-playing="false"] .star{opacity:.55}
+.widget[data-playing="true"] .star{animation:pulse 1.7s ease-in-out infinite}
+@keyframes pulse{50%{transform:scale(1.14);filter:drop-shadow(0 0 13px rgba(255,217,160,.95))}}
+.art .mode{position:absolute;top:0;right:-2px;font-size:8px;padding:2px 4px;border-radius:3px;
+  background:rgba(0,0,0,.6);color:#a0a0a0;text-transform:uppercase;letter-spacing:.08em;font-weight:600;opacity:.85}
+.art .mode.live{color:#5ad78f}
+
+/* Infos */
+.info{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.title{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.3}
+.artist{font-size:11px;color:#c8c8c8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.3}
+.bar{position:relative;height:4px;margin-top:6px;border-radius:2px;overflow:hidden;cursor:pointer;background:rgba(255,255,255,.08)}
+.bar canvas{position:absolute;inset:0;width:100%;height:100%;opacity:.55}
+.fill{position:absolute;left:0;top:0;bottom:0;background:#fff;mix-blend-mode:overlay;border-radius:2px;transition:width .3s}
+
+/* Contrôles */
+.ctrls{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.btn{width:28px;height:28px;border-radius:50%;border:none;background:transparent;color:#e8e8e8;cursor:pointer;display:grid;place-items:center;transition:.15s}
+.btn svg{width:14px;height:14px;fill:currentColor}
+.btn:hover{background:rgba(255,255,255,.08)}
+.btn:active{transform:scale(.88)}
+.btn.play{background:rgba(255,255,255,.92);color:#1a1a1a}
+.btn.play svg{width:13px;height:13px}
+.widget[data-playing="true"] .btn.play #icPlay{display:none}
+.widget[data-playing="true"] .btn.play #icPause{display:block}
+.widget[data-mode="offline"] .ctrls{opacity:.45}
+
+.lock{width:22px;height:22px;border-radius:5px;border:none;background:transparent;color:#b8b8b8;cursor:pointer;
+  display:grid;place-items:center;transition:.2s;position:absolute;top:8px;right:8px;opacity:.55}
+.lock:hover{background:rgba(255,255,255,.08);opacity:1}
+.lock svg{width:11px;height:11px;fill:currentColor}
+.lock.locked{color:#f2a33c;opacity:.85}
+.lock.locked:hover{color:#ffd9a0}
+
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></symbol>
+  <symbol id="i-prev" viewBox="0 0 24 24"><path d="M6 6v12H4V6zM18 6v12L8 12z"/></symbol>
+  <symbol id="i-next" viewBox="0 0 24 24"><path d="M18 6v12h2V6zM6 6v12L16 12z"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+  <symbol id="i-unlock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+</defs></svg>
+
+<main class="page">
+  <section class="widget unlocked" id="widget" data-playing="false" data-mode="offline">
+    <button class="lock" id="btnLock" title="Verrouiller la position"><svg><use href="#i-unlock"/></svg></button>
+    <div class="row">
+      <figure class="art" id="artBox" title="Lecture / pause">
+        <div class="star-wrap">
+          <svg class="star" viewBox="0 0 24 24">
+            <defs>
+              <linearGradient id="starGrad" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#ffe3b0"/>
+                <stop offset="55%" stop-color="#f2a33c"/>
+                <stop offset="100%" stop-color="#d97b1f"/>
+              </linearGradient>
+            </defs>
+            <path d="M12 0 C13 7 17 11 24 12 C17 13 13 17 12 24 C11 17 7 13 0 12 C7 11 11 7 12 0 Z" fill="url(#starGrad)"/>
+          </svg>
+        </div>
+        <span class="mode" id="mode">HORS LIGNE</span>
+      </figure>
+      <div class="info">
+        <h2 class="title" id="titleTxt">—</h2>
+        <p class="artist" id="artistTxt">Aucun lecteur détecté</p>
+        <div class="bar" id="bar"><canvas id="vizC"></canvas><div class="fill" id="fill"></div></div>
+      </div>
+      <div class="ctrls">
+        <button class="btn" id="btnPrev" title="Précédent"><svg><use href="#i-prev"/></svg></button>
+        <button class="btn play" id="btnPlay" title="Lecture">
+          <svg id="icPlay"><use href="#i-play"/></svg>
+          <svg id="icPause" style="display:none"><use href="#i-pause"/></svg>
+        </button>
+        <button class="btn" id="btnNext" title="Suivant"><svg><use href="#i-next"/></svg></button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+'use strict';
+const $=s=>document.querySelector(s);
+const widget=$('#widget'), titleTxt=$('#titleTxt'), artistTxt=$('#artistTxt'),
+      mode=$('#mode'), bar=$('#bar'), fill=$('#fill'),
+      vizC=$('#vizC'), vctx=vizC.getContext('2d'),
+      btnPlay=$('#btnPlay'), btnPrev=$('#btnPrev'), btnNext=$('#btnNext'),
+      btnLock=$('#btnLock');
+
+const S={mode:'offline',playing:false,dur:0,pos:0,posTs:0,locked:false};
+
+function setPlaying(v){S.playing=v;widget.dataset.playing=v;}
+function setMode(m){
+  S.mode=m;widget.dataset.mode=m;
+  mode.textContent=(m==='live')?'LIVE':'HORS LIGNE';
+  mode.classList.toggle('live',m==='live');
+  if(m==='offline'){artistTxt.textContent='Aucun lecteur détecté';}
+}
+
+function setLocked(v){
+  S.locked=v;
+  widget.classList.toggle('unlocked',!v);
+  btnLock.classList.toggle('locked',v);
+  btnLock.querySelector('use').setAttribute('href',v?'#i-lock':'#i-unlock');
+  btnLock.title=v?'Déverrouiller la position':'Verrouiller la position';
+  if(window.bridge)window.bridge.setLocked(v);
+}
+btnLock.addEventListener('click',()=>setLocked(!S.locked));
+
+/* ── Pont WebSocket (pas de démo : on attend le bridge) ── */
+let ws=null,retries=0;
+function send(c){if(ws&&ws.readyState===1)ws.send(c);}
+function connect(){
+  try{ws=new WebSocket('ws://127.0.0.1:8974');}catch(e){schedule();return;}
+  ws.onopen=()=>{
+    retries=0;setMode('live');
+    artistTxt.textContent='Connecté — en attente de média…';
+  };
+  ws.onclose=()=>{ws=null;setMode('offline');schedule();};
+  ws.onerror=()=>{try{ws.close();}catch(_){}};
+  ws.onmessage=e=>{
+    if(typeof e.data!=='string')return;
+    const i=e.data.indexOf(' '),k=(i<0?e.data:e.data.slice(0,i)).toUpperCase(),v=i<0?'':e.data.slice(i+1);
+    switch(k){
+      case 'STATE': setPlaying(v==='1'); break;
+      case 'TITLE': titleTxt.textContent=v||'—'; break;
+      case 'ARTIST': artistTxt.textContent=v||''; break;
+      case 'DURATION': S.dur=+v||0; break;
+      case 'POSITION': S.pos=+v||0;S.posTs=performance.now(); break;
+    }
+  };
+}
+function schedule(){clearTimeout(schedule.t);schedule.t=setTimeout(connect,Math.min(1500*Math.pow(1.7,retries++),8000));}
+
+/* ── Contrôles (inactifs hors ligne) ── */
+function curPos(){let p=S.pos;if(S.playing&&!seeking)p+=(performance.now()-S.posTs)/1000;return S.dur?Math.min(p,S.dur):p;}
+function togglePlay(){if(S.mode!=='live')return;send('PlayPause');setPlaying(!S.playing);}
+function next(){if(S.mode!=='live')return;send('Next');}
+function prev(){
+  if(S.mode!=='live')return;
+  if(curPos()>3){S.pos=0;S.posTs=performance.now();send('SetPosition 0');}
+  else send('Previous');
+}
+btnPlay.addEventListener('click',togglePlay);
+btnNext.addEventListener('click',next);
+btnPrev.addEventListener('click',prev);
+$('#artBox').addEventListener('click',togglePlay);
+
+let seeking=false;
+const barPos=e=>{const r=bar.getBoundingClientRect();return Math.min(1,Math.max(0,(e.clientX-r.left)/r.width))*S.dur;};
+bar.addEventListener('pointerdown',e=>{if(S.mode!=='live'||!S.dur)return;seeking=true;bar.setPointerCapture(e.pointerId);S.pos=barPos(e);S.posTs=performance.now();});
+bar.addEventListener('pointermove',e=>{if(seeking){S.pos=barPos(e);S.posTs=performance.now();}});
+bar.addEventListener('pointerup',e=>{if(!seeking)return;seeking=false;send('SetPosition '+Math.round(barPos(e)));});
+
+window.addEventListener('keydown',e=>{
+  if(e.target&&e.target.tagName==='INPUT')return;
+  if(e.code==='Space'){e.preventDefault();togglePlay();}
+  else if(e.code==='ArrowRight')next();
+  else if(e.code==='ArrowLeft')prev();
+});
+
+/* ── Visualiseur ── */
+const BARS=24,vals=new Float32Array(BARS);
+let vw=0,vh=0;
+function sizeViz(){const r=vizC.parentElement.getBoundingClientRect(),d=window.devicePixelRatio||1;
+  vw=r.width;vh=r.height;vizC.width=vw*d;vizC.height=vh*d;vctx.setTransform(d,0,0,d,0,0);}
+new ResizeObserver(sizeViz).observe(vizC.parentElement);sizeViz();
+
+function vizTargets(t){
+  for(let i=0;i<BARS;i++){
+    let tg;
+    if(S.playing&&S.mode==='live'){
+      const s=.5+.5*Math.sin(i*.6+t*1.4);
+      tg=(.3+.6*Math.pow(s,1.6))*(.9+Math.random()*.2);
+    }else tg=.08+.03*Math.sin(i*.8+t*.6);
+    vals[i]+=(tg-vals[i])*.25;
+  }
+}
+function drawViz(){
+  vctx.clearRect(0,0,vw,vh);
+  const bw=vw/BARS,w=Math.max(1.5,bw*.55);
+  vctx.fillStyle='rgba(255,255,255,.85)';
+  for(let i=0;i<BARS;i++){
+    const h=Math.max(1,vals[i]*vh);
+    vctx.fillRect(i*bw+(bw-w)/2,vh-h,w,h);
+  }
+}
+
+function frame(now){
+  const t=now/1000;
+  vizTargets(t);drawViz();
+  const p=curPos(),pct=S.dur?p/S.dur*100:0;
+  fill.style.width=pct+'%';
+  requestAnimationFrame(frame);
+}
+
+(async () => {
+  if(window.bridge){
+    const cfg=await window.bridge.getConfig();
+    if(cfg.locked)setLocked(true);
+  }
+})();
+
+setMode('offline');setPlaying(false);connect();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

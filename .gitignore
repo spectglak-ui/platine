@@ -1,0 +1,14 @@
+﻿node_modules/
+dist/
+*.log
+config.json
+bridge/dist/
+bridge/build/
+*.spec
+__pycache__/
+*.py[cod]
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/

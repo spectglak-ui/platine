@@ -1,0 +1,26 @@
+{
+  "name": "platine",
+  "version": "1.0.0",
+  "description": "Widget média de bureau — transport, vignette, visualiseur",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder"
+  },
+  "build": {
+    "appId": "fr.platine.widget",
+    "productName": "PLATINE",
+    "win": {
+      "target": "portable"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "widget.html"
+    ]
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^24.13.3"
+  }
+}
