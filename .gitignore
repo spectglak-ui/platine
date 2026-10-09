@@ -1,0 +1,13 @@
+node_modules/
+dist/
+bridge/dist/
+bridge/build/
+bridge/cache/
+*.spec
+config.json
+bridge/credentials.txt
+bridge/.spotify_cache
+__pycache__/
+*.py[cod]
+Thumbs.db
+desktop.ini
